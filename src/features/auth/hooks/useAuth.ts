@@ -1,3 +1,4 @@
+// src/features/auth/hooks/useAuth.ts
 import { useEffect } from "react";
 import {
   getToken,
@@ -7,9 +8,10 @@ import {
   setUser as saveUser,
   clearUser,
 } from "@/utils/storage";
-import { loginRequest } from "../api/authApi";
+import { loginRequest, registerUsuarioRequest } from "../api/authApi";
 import type { LoginPayload } from "@/features/auth/types/auth.type";
 import type { UsuarioAuth } from "@/features/auth/types/usuario.type";
+import type { RegisterUsuarioPayload } from "../types/RegisterUsuarioPayload";
 import { useLoadingStore } from "@/store/loadingStore";
 import { useAuthStore } from "./useAuthStore";
 
@@ -36,19 +38,41 @@ export const useAuth = () => {
     setInitializing(false);
   }, [initializing, setFromStorage, setInitializing]);
 
+  const applyAuth = (usuario: UsuarioAuth, accessToken: string) => {
+    saveToken(accessToken);
+    saveUser(usuario);
+    setAuth(usuario, accessToken);
+  };
+
   const login = async (payload: LoginPayload): Promise<UsuarioAuth> => {
     startLoading();
     try {
       const res = await loginRequest(payload);
 
       if (res.success && res.data.accessToken) {
-        saveToken(res.data.accessToken);
-        saveUser(res.data.usuario);
-        setAuth(res.data.usuario, res.data.accessToken);
+        applyAuth(res.data.usuario, res.data.accessToken);
         return res.data.usuario;
       }
 
       throw new Error("Respuesta de login inválida.");
+    } finally {
+      stopLoading();
+    }
+  };
+
+  const register = async (
+    payload: RegisterUsuarioPayload
+  ): Promise<UsuarioAuth> => {
+    startLoading();
+    try {
+      const res = await registerUsuarioRequest(payload);
+
+      if (res.success && res.data.accessToken) {
+        applyAuth(res.data.usuario as UsuarioAuth, res.data.accessToken);
+        return res.data.usuario as UsuarioAuth;
+      }
+
+      throw new Error("Respuesta de registro inválida.");
     } finally {
       stopLoading();
     }
@@ -65,17 +89,9 @@ export const useAuth = () => {
     return user.rol === role;
   };
 
-  const isAdmin = () => {
-    return hasRole("ADMIN");
-  };
-
-  const isStaff = () => {
-    return hasRole("STAFF") || isAdmin();
-  };
-
-  const canModerate = () => {
-    return isAdmin() || isStaff();
-  };
+  const isAdmin = () => hasRole("ADMIN");
+  const isStaff = () => hasRole("STAFF") || isAdmin();
+  const canModerate = () => isAdmin() || isStaff();
 
   return {
     initializing,
@@ -83,6 +99,7 @@ export const useAuth = () => {
     user,
     token,
     login,
+    register,
     logout,
     hasRole,
     isAdmin,

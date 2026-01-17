@@ -13,6 +13,7 @@ import { NoticiasPublicListPage } from "@/features/noticias/pages/NoticiasPublic
 import { NoticiaDetailPage } from "@/features/noticias/pages/NoticiaDetailPage";
 import { EventoDetailPage } from "@/features/eventos/pages/EventoDetailPage";
 import { ForoPublicPage } from "@/features/foro/pages/ForoPublicPage";
+import { PreguntaDetallePage } from "@/features/foro/pages/PreguntaDetallePage";
 import { AdminDashboardPage } from "@/features/dashboard/pages/AdminDashboardPage";
 import { ForoAdminPage } from "@/features/foro/pages/ForoAdminPage";
 import { NoticiasAdminListPage } from "@/features/noticias/pages/NoticiasAdminListPage";
@@ -24,7 +25,7 @@ import { EventosEditPage } from "@/features/eventos/pages/EventosEditPage";
 import { PreguntasFrecuentesPage } from "@/pages/PreguntasFrecuentes";
 import { ContactoPublicPage } from "@/pages/ContactoPublicPage";
 import { UsuariosAdminPage } from "@/features/usuarios/pages/UsuariosAdminPage";
-
+import { PreguntaDetalleAdminPage } from "@/features/foro/components/PreguntaDetalleAdminPage";
 
 export const AppRouter = () => (
   <BrowserRouter>
@@ -39,6 +40,8 @@ export const AppRouter = () => (
         <Route path="/noticias/:id" element={<NoticiaDetailPage />} />
         <Route path="/eventos/:id" element={<EventoDetailPage />} />
         <Route path="/foro" element={<ForoPublicPage />} />
+        <Route path="/foro/:id" element={<PreguntaDetallePage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/admin/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegisterPage />} />
         <Route element={<ProtectedRoute />}>
@@ -46,17 +49,19 @@ export const AppRouter = () => (
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Route>
+
       <Route element={<ProtectedRoute />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboardPage />} />
           <Route path="foro" element={<ForoAdminPage />} />
+           <Route path="foro/:id" element={<PreguntaDetalleAdminPage />} />
           <Route path="noticias" element={<NoticiasAdminListPage />} />
           <Route path="noticias/crear" element={<NoticiasCreatePage />} />
           <Route path="noticias/:id" element={<NoticiasEditPage />} />
           <Route path="eventos" element={<EventosAdminListPage />} />
           <Route path="eventos/crear" element={<EventosCreatePage />} />
           <Route path="eventos/:id" element={<EventosEditPage />} />
-          <Route path="/admin/usuarios" element={<UsuariosAdminPage />} />
+          <Route path="usuarios" element={<UsuariosAdminPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Route>

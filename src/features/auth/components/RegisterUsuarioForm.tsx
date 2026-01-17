@@ -1,3 +1,4 @@
+// src/features/auth/components/RegisterUsuarioForm.tsx
 import { useState } from "react";
 import type { RegisterUsuarioPayload } from "../types/RegisterUsuarioPayload";
 
@@ -54,7 +55,12 @@ export const RegisterUsuarioForm: React.FC<Props> = ({ onSubmit }) => {
 
     try {
       setSubmitting(true);
+
+      // DEBUG (puedes quitarlo luego)
+      console.log("[RegisterUsuarioForm] submit payload:", form);
+
       await onSubmit(form);
+
       setSuccess(true);
       setForm({
         nombres: "",
@@ -63,9 +69,13 @@ export const RegisterUsuarioForm: React.FC<Props> = ({ onSubmit }) => {
         contrasena: "",
       });
     } catch (err: any) {
-      setErrorMsg(
-        err?.message || "Ocurrió un error al registrarse. Intente nuevamente."
-      );
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Ocurrió un error al registrarse. Intente nuevamente.";
+
+      setErrorMsg(Array.isArray(msg) ? msg.join(", ") : String(msg));
     } finally {
       setSubmitting(false);
     }
@@ -77,8 +87,10 @@ export const RegisterUsuarioForm: React.FC<Props> = ({ onSubmit }) => {
         <h2 className="text-2xl font-extrabold text-center text-blue-800 mb-2">
           Registro de usuario
         </h2>
+
         <p className="text-sm text-center text-slate-500 mb-6">
-          Crea tu cuenta para acceder a la plataforma de la Unidad Educativa Colegio Simón Rodríguez.
+          Crea tu cuenta para acceder a la plataforma de la Unidad Educativa
+          Colegio Simón Rodríguez.
         </p>
 
         {success && (
@@ -133,8 +145,8 @@ export const RegisterUsuarioForm: React.FC<Props> = ({ onSubmit }) => {
               maxLength={150}
               value={form.email}
               onChange={(e) => setField("email", e.target.value)}
-              className="w-full rounded-lg border(border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="ejemplo@eca.edu.ve"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="ejemplo@csr.edu.ec"
               required
             />
           </div>

@@ -1,12 +1,17 @@
 import { useNavigate } from "react-router-dom";
 import { RegisterUsuarioForm } from "../components/RegisterUsuarioForm";
+import { useAuth } from "../hooks/useAuth";
 
-export const RegisterPage: React.FC = () => {
+export function RegisterPage() {
+  const { register } = useAuth();
   const navigate = useNavigate();
 
-  const handleRegister = async () => {
-    navigate("/admin/login");
-  };
-
-  return <RegisterUsuarioForm onSubmit={handleRegister} />;
-};
+  return (
+    <RegisterUsuarioForm
+      onSubmit={async (data) => {
+        await register(data);
+        navigate("/");
+      }}
+    />
+  );
+}

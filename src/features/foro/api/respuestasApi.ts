@@ -24,12 +24,12 @@ export interface CreateRespuestaPayload {
 
 export const getRespuestasByPregunta = async (preguntaId: number, page = 1, limit = 50) => {
   const res = await apiClient.get(`/respuestas-foro/pregunta/${preguntaId}`, { params: { page, limit } });
-  return res.data;
+  return res.data.data;
 };
 
 export const getRespuestasAdminByPregunta = async (preguntaId: number, page = 1, limit = 50) => {
   const res = await apiClient.get(`/respuestas-foro/pregunta/${preguntaId}/admin`, { params: { page, limit } });
-  return res.data;
+  return res.data.data;
 };
 
 export const createRespuesta = async (payload: CreateRespuestaPayload) => {

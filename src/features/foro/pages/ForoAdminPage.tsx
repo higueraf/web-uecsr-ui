@@ -1,5 +1,13 @@
+// src/features/foro/pages/ForoAdminPage.tsx
 import { useEffect, useState } from "react";
-import { createPreguntaAdmin, getForoAdmin, updatePreguntaAdmin, type ForoCategoria, type ForoEstadoAdmin, type ForoPreguntaAdmin } from "../api/foroApi";
+import {
+  createPreguntaAdmin,
+  getForoAdmin,
+  updatePreguntaAdmin,
+  type ForoCategoria,
+  type ForoEstadoAdmin,
+  type ForoPreguntaAdmin,
+} from "../api/foroApi";
 import { ForoCategoryBadge } from "../components/ForoCategoryBadge";
 import { ForoRowActions } from "../components/ForoRowActions";
 import { ForoStatusBadge } from "../components/ForoStatusBadge";
@@ -174,8 +182,8 @@ export const ForoAdminPage = () => {
       </div>
 
       {preguntaSeleccionada && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto shadow-2xl">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold">Moderar Respuestas</h3>
@@ -190,8 +198,8 @@ export const ForoAdminPage = () => {
       )}
 
       {showFormModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto shadow-2xl">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold">{selected ? "Editar Pregunta" : "Nueva Pregunta"}</h3>

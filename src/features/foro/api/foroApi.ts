@@ -39,7 +39,12 @@ export const getForoPublic = async (page = 1, search = "", categoria?: ForoCateg
   return res.data.data;
 };
 
-export const getForoAdmin = async (page = 1, search = "", categoria?: ForoCategoria, estado?: ForoEstadoAdmin) => {
+export const getForoAdmin = async (
+  page = 1,
+  search = "",
+  categoria?: ForoCategoria,
+  estado?: ForoEstadoAdmin
+) => {
   const res = await apiClient.get("/preguntas-foro/admin", {
     params: { page, limit: 20, search, categoria, estado },
   });
@@ -48,12 +53,12 @@ export const getForoAdmin = async (page = 1, search = "", categoria?: ForoCatego
 
 export const getPreguntaByIdPublic = async (id: number) => {
   const res = await apiClient.get(`/preguntas-foro/${id}`);
-  return res.data;
+  return res.data.data;
 };
 
 export const getPreguntaByIdAdmin = async (id: number) => {
   const res = await apiClient.get(`/preguntas-foro/${id}/admin`);
-  return res.data;
+  return res.data.data;
 };
 
 export const createPreguntaPublic = async (payload: ForoPreguntaPayloadPublic) => {

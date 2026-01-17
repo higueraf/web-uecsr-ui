@@ -1,16 +1,22 @@
 import { useEffect, useState } from "react";
-import { deleteRespuesta, getRespuestasAdminByPregunta, toggleOcultaRespuesta, updateRespuestaEstado } from "../api/respuestasApi";
-import type { EstadoRespuestaAdmin } from "../api/respuestasApi";
+import {
+  deleteRespuesta,
+  getRespuestasAdminByPregunta,
+  toggleOcultaRespuesta,
+  updateRespuestaEstado,
+  type EstadoRespuestaAdmin,
+  type RespuestaForoAdmin,
+} from "../api/respuestasApi";
 
 export const RespuestasAdminPanel = ({ preguntaId }: { preguntaId: number }) => {
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<RespuestaForoAdmin[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
     try {
       const data = await getRespuestasAdminByPregunta(preguntaId, 1, 100);
-      setItems(data.items || []);
+      setItems(Array.isArray(data?.items) ? data.items : []);
     } finally {
       setLoading(false);
     }
@@ -22,21 +28,23 @@ export const RespuestasAdminPanel = ({ preguntaId }: { preguntaId: number }) => 
 
   const setEstado = async (id: number, estado: EstadoRespuestaAdmin) => {
     await updateRespuestaEstado(id, estado);
-    load();
+    await load();
   };
 
   const toggle = async (id: number) => {
     await toggleOcultaRespuesta(id);
-    load();
+    await load();
   };
 
   const del = async (id: number) => {
     if (!confirm("¿Eliminar esta respuesta?")) return;
     await deleteRespuesta(id);
-    load();
+    await load();
   };
 
   if (loading) return <div className="py-4 text-center">Cargando respuestas...</div>;
+
+  if (!items.length) return <div className="py-4 text-center text-slate-500">No hay respuestas para esta pregunta.</div>;
 
   return (
     <div className="space-y-4">
@@ -49,7 +57,7 @@ export const RespuestasAdminPanel = ({ preguntaId }: { preguntaId: number }) => 
               <div className="text-xs text-gray-500">{new Date(r.creadoEn).toLocaleString()}</div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap justify-end">
               <button className="px-3 py-1 border rounded text-sm" onClick={() => setEstado(r.id, "APROBADA")}>
                 Aprobar
               </button>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { ForoCategoryBadge } from "../components/ForoCategoryBadge";
 import {
@@ -35,14 +35,19 @@ export const PreguntaDetallePage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, canModerate } = useAuth();
+  const [searchParams] = useSearchParams();
+
+  const replyRef = useRef<HTMLTextAreaElement | null>(null);
 
   const [pregunta, setPregunta] = useState<PreguntaUI | null>(null);
   const [respuestas, setRespuestas] = useState<RespuestaForoPublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const [editMode, setEditMode] = useState(false);
 
   const [nuevaRespuesta, setNuevaRespuesta] = useState("");
+
   const [editTitulo, setEditTitulo] = useState("");
   const [editContenido, setEditContenido] = useState("");
   const [editRespuestaAdmin, setEditRespuestaAdmin] = useState("");
@@ -71,7 +76,7 @@ export const PreguntaDetallePage = () => {
       setEditTitulo((preguntaData as any).titulo || "");
       setEditContenido((preguntaData as any).contenido || "");
       setEditRespuestaAdmin((preguntaData as any).respuestaAdmin || "");
-    } catch (err) {
+    } catch {
       setError("No se pudo cargar la pregunta");
       setPregunta(null);
       setRespuestas([]);
@@ -84,13 +89,19 @@ export const PreguntaDetallePage = () => {
     cargarDatos();
   }, [id]);
 
+  useEffect(() => {
+    if (searchParams.get("reply") === "1") {
+      setTimeout(() => replyRef.current?.focus(), 250);
+    }
+  }, [searchParams]);
+
   const handleEnviarRespuesta = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
     if (!nuevaRespuesta.trim()) return;
 
     if (!isAuthenticated) {
-      navigate(`/auth/login?returnUrl=/foro/${id}`);
+      navigate(`/login?returnUrl=${encodeURIComponent(`/foro/${id}?reply=1`)}`);
       return;
     }
 
@@ -100,7 +111,7 @@ export const PreguntaDetallePage = () => {
     });
 
     setNuevaRespuesta("");
-    cargarDatos();
+    await cargarDatos();
   };
 
   const handleUpdatePregunta = async (e: React.FormEvent) => {
@@ -114,17 +125,17 @@ export const PreguntaDetallePage = () => {
     });
 
     setEditMode(false);
-    cargarDatos();
+    await cargarDatos();
   };
 
   const handleAprobarRespuesta = async (respuestaId: number) => {
     await updateRespuestaEstado(respuestaId, "APROBADA");
-    cargarDatos();
+    await cargarDatos();
   };
 
   const handleOcultarRespuesta = async (respuestaId: number) => {
     await toggleOcultaRespuesta(respuestaId);
-    cargarDatos();
+    await cargarDatos();
   };
 
   const getEstadoBadge = (estado: string) => {
@@ -135,7 +146,8 @@ export const PreguntaDetallePage = () => {
       OCULTA: { color: "bg-slate-100 text-slate-700", icon: XCircle, label: "OCULTA" },
     };
 
-    const cfg = map[estado] || { color: "bg-slate-100 text-slate-700", icon: AlertCircle, label: estado };
+    const cfg =
+      map[estado] || { color: "bg-slate-100 text-slate-700", icon: AlertCircle, label: estado };
     const Icon = cfg.icon;
 
     return (
@@ -159,7 +171,9 @@ export const PreguntaDetallePage = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">{error || "Pregunta no encontrada"}</h2>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">
+            {error || "Pregunta no encontrada"}
+          </h2>
           <Link to="/foro" className="text-blue-600 hover:underline">
             ← Volver al foro
           </Link>
@@ -181,7 +195,9 @@ export const PreguntaDetallePage = () => {
               </Link>
             </li>
             <li>/</li>
-            <li className="font-medium text-gray-800 truncate">{(pregunta as any).titulo}</li>
+            <li className="font-medium text-gray-800 truncate">
+              {(pregunta as any).titulo}
+            </li>
           </ol>
         </nav>
 
@@ -189,11 +205,7 @@ export const PreguntaDetallePage = () => {
           <form onSubmit={handleUpdatePregunta} className="bg-white rounded-xl shadow-lg p-6 mb-8">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Editar Pregunta</h2>
-              <button
-                type="button"
-                onClick={() => setEditMode(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
+              <button type="button" onClick={() => setEditMode(false)} className="text-gray-500 hover:text-gray-700">
                 Cancelar
               </button>
             </div>
@@ -221,7 +233,7 @@ export const PreguntaDetallePage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Respuesta Oficial (Opcional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Respuesta Oficial</label>
                 <textarea
                   value={editRespuestaAdmin}
                   onChange={(e) => setEditRespuestaAdmin(e.target.value)}
@@ -230,11 +242,7 @@ export const PreguntaDetallePage = () => {
               </div>
 
               <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setEditMode(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
-                >
+                <button type="button" onClick={() => setEditMode(false)} className="px-4 py-2 border rounded-lg text-sm">
                   Cancelar
                 </button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">
@@ -247,7 +255,9 @@ export const PreguntaDetallePage = () => {
           <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
             <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-4 gap-3">
               <div className="space-y-2">
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-800">{(pregunta as any).titulo}</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+                  {(pregunta as any).titulo}
+                </h1>
                 <ForoCategoryBadge categoria={(pregunta as any).categoria} />
               </div>
 
@@ -273,40 +283,29 @@ export const PreguntaDetallePage = () => {
               </span>
             </div>
 
-            <div className="prose max-w-none text-gray-700 mb-6">{(pregunta as any).contenido}</div>
+            <div className="prose max-w-none text-gray-700 mb-6">
+              {(pregunta as any).contenido}
+            </div>
 
             {(pregunta as any).respuestaAdmin && (
               <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold text-blue-800 flex items-center gap-2">
-                    <MessageCircle className="w-5 h-5" />
-                    Respuesta oficial
-                  </h3>
-                  {canModerate() && (
-                    <button
-                      onClick={() => {
-                        setEditMode(true);
-                        setEditRespuestaAdmin((pregunta as any).respuestaAdmin);
-                      }}
-                      className="text-blue-600 text-sm hover:underline"
-                    >
-                      Editar
-                    </button>
-                  )}
-                </div>
-                <p className="text-blue-700 whitespace-pre-line">{(pregunta as any).respuestaAdmin}</p>
+                <h3 className="font-semibold text-blue-800 flex items-center gap-2 mb-2">
+                  <MessageCircle className="w-5 h-5" />
+                  Respuesta oficial
+                </h3>
+                <p className="text-blue-700 whitespace-pre-line">
+                  {(pregunta as any).respuestaAdmin}
+                </p>
               </div>
             )}
           </div>
         )}
 
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-              <MessageCircle className="w-5 h-5" />
-              Respuestas ({respuestas.length})
-            </h2>
-          </div>
+          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-6">
+            <MessageCircle className="w-5 h-5" />
+            Respuestas ({respuestas.length})
+          </h2>
 
           {respuestas.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
@@ -316,7 +315,7 @@ export const PreguntaDetallePage = () => {
             <div className="space-y-6">
               {respuestas.map((r: any) => {
                 const estado: EstadoRespuestaAdmin = r.estado;
-                const autor = r.autorNombre || r.nombreAutor || "Usuario";
+                const autor = r.autorNombre || "Usuario";
 
                 return (
                   <div key={r.id} className="border-l-4 border-blue-500 pl-4 py-3">
@@ -335,20 +334,11 @@ export const PreguntaDetallePage = () => {
                         {canModerate() && (
                           <div className="flex gap-1">
                             {estado !== "APROBADA" && (
-                              <button
-                                onClick={() => handleAprobarRespuesta(r.id)}
-                                className="text-green-600 hover:text-green-800"
-                                title="Mostrar (Aprobar)"
-                              >
+                              <button onClick={() => handleAprobarRespuesta(r.id)} className="text-green-600 hover:text-green-800">
                                 <CheckCircle className="w-4 h-4" />
                               </button>
                             )}
-
-                            <button
-                              onClick={() => handleOcultarRespuesta(r.id)}
-                              className="text-slate-700 hover:text-slate-900"
-                              title={estado === "OCULTA" ? "Mostrar" : "Ocultar"}
-                            >
+                            <button onClick={() => handleOcultarRespuesta(r.id)} className="text-slate-700 hover:text-slate-900">
                               <XCircle className="w-4 h-4" />
                             </button>
                           </div>
@@ -371,6 +361,7 @@ export const PreguntaDetallePage = () => {
 
           <form onSubmit={handleEnviarRespuesta}>
             <textarea
+              ref={replyRef}
               value={nuevaRespuesta}
               onChange={(e) => setNuevaRespuesta(e.target.value)}
               placeholder={isAuthenticated ? "Escribe tu respuesta aquí..." : "Inicia sesión para poder responder"}
@@ -384,7 +375,7 @@ export const PreguntaDetallePage = () => {
                 <button
                   type="submit"
                   disabled={!nuevaRespuesta.trim()}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 flex items-center gap-2 disabled:opacity-50"
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center gap-2 disabled:opacity-50"
                 >
                   <Send className="w-4 h-4" />
                   Enviar respuesta
@@ -392,14 +383,16 @@ export const PreguntaDetallePage = () => {
               ) : (
                 <button
                   type="button"
-                  onClick={() => navigate(`/auth/login?returnUrl=/foro/${id}`)}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-300"
+                  onClick={() => navigate(`/login?returnUrl=${encodeURIComponent(`/foro/${id}?reply=1`)}`)}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
                 >
                   Iniciar sesión para responder
                 </button>
               )}
 
-              <p className="text-sm text-gray-500">Tu respuesta será revisada antes de publicarse</p>
+              <p className="text-sm text-gray-500">
+                Tu respuesta será revisada antes de publicarse
+              </p>
             </div>
           </form>
         </div>
