@@ -50,7 +50,7 @@ export const EventoComentarios = ({ eventoId }: Props) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated) return redirectLogin();
-
+    console.log(nuevoComentario);
     await createEventoComentario(eventoId, { contenido: nuevoComentario });
     setNuevoComentario("");
     setMostrarFormulario(false);
@@ -111,9 +111,9 @@ export const EventoComentarios = ({ eventoId }: Props) => {
               className="border-l-4 border-green-500 pl-4 py-3 bg-white rounded-r-lg shadow-sm"
             >
               <div className="flex justify-between mb-1">
-                <span className="font-semibold">{c.usuario?.nombre}</span>
+                <span className="font-semibold">{c.usuario?.nombres} {c.usuario?.nombres}</span>
                 <span className="text-sm text-gray-500">
-                  {new Date(c.creadoEn).toLocaleDateString()}
+                  {new Date(c.creadoEn || '').toLocaleDateString()}
                 </span>
               </div>
               <p className="text-gray-700">{c.contenido}</p>

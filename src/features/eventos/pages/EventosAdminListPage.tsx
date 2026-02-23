@@ -2,18 +2,14 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   getEventosAdmin,
+  getEventosComentariosCountMap,
   type Evento,
   type EstadoEvento,
 } from "@/features/eventos/api/eventosApi";
 import { EventoRowActions } from "../components/EventoRowActions";
+import { EventoComentariosModal } from "../components/EventoComentariosModal";
 
-const estados: (EstadoEvento | "TODOS")[] = [
-  "TODOS",
-  "PROGRAMADO",
-  "EN_CURSO",
-  "FINALIZADO",
-  "CANCELADO",
-];
+const estados: (EstadoEvento | "TODOS")[] = ["TODOS", "PROGRAMADO", "EN_CURSO", "FINALIZADO", "CANCELADO"];
 
 export const EventosAdminListPage = () => {
   const [items, setItems] = useState<Evento[]>([]);
@@ -23,6 +19,10 @@ export const EventosAdminListPage = () => {
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoEvento | "TODOS">("TODOS");
   const [loading, setLoading] = useState(false);
 
+  const [counts, setCounts] = useState<Record<number, number>>({});
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedEventoId, setSelectedEventoId] = useState<number | null>(null);
+
   const load = async () => {
     setLoading(true);
     try {
@@ -31,6 +31,9 @@ export const EventosAdminListPage = () => {
       if (estadoFiltro !== "TODOS") data = data.filter((e) => e.estado === estadoFiltro);
       setItems(data);
       setMeta(res.meta);
+      const ids = data.map((d) => d.id);
+      const map = await getEventosComentariosCountMap(ids);
+      setCounts(map);
     } finally {
       setLoading(false);
     }
@@ -40,14 +43,17 @@ export const EventosAdminListPage = () => {
     load();
   }, [page, search, estadoFiltro]);
 
+  const openComentarios = (eventoId: number) => {
+    setSelectedEventoId(eventoId);
+    setModalOpen(true);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Eventos</h1>
-          <p className="text-sm text-slate-500">
-            Gestiona los eventos que se muestran en el sitio público.
-          </p>
+          <p className="text-sm text-slate-500">Gestiona los eventos que se muestran en el sitio público.</p>
         </div>
 
         <Link
@@ -94,6 +100,7 @@ export const EventosAdminListPage = () => {
               <th className="p-3 text-left hidden md:table-cell">Estado</th>
               <th className="p-3 text-left hidden lg:table-cell">Lugar</th>
               <th className="p-3 text-left hidden lg:table-cell">Fecha inicio</th>
+              <th className="p-3 text-left hidden md:table-cell">Comentarios</th>
               <th className="p-3 text-right">Acciones</th>
             </tr>
           </thead>
@@ -101,14 +108,14 @@ export const EventosAdminListPage = () => {
           <tbody>
             {items.map((e) => {
               const fecha = e.fechaInicio ?? e.creadoEn;
+              const cantidad = counts[e.id] ?? 0;
+
               return (
                 <tr key={e.id} className="border-t">
                   <td className="p-3">
                     <div className="font-semibold text-slate-900 line-clamp-1">{e.titulo}</div>
                     {e.resumen && (
-                      <div className="text-xs text-slate-500 line-clamp-2 md:hidden">
-                        {e.resumen}
-                      </div>
+                      <div className="text-xs text-slate-500 line-clamp-2 md:hidden">{e.resumen}</div>
                     )}
                   </td>
 
@@ -141,6 +148,17 @@ export const EventosAdminListPage = () => {
                     {fecha ? new Date(fecha).toLocaleDateString() : "-"}
                   </td>
 
+                  <td className="p-3 hidden md:table-cell">
+                    <button
+                      className="px-3 py-1 border rounded-lg text-xs hover:bg-slate-50"
+                      onClick={() => openComentarios(e.id)}
+                      disabled={cantidad === 0}
+                      title={cantidad === 0 ? "No hay comentarios" : "Ver comentarios"}
+                    >
+                      {cantidad}
+                    </button>
+                  </td>
+
                   <td className="p-3">
                     <EventoRowActions evento={e} onRefresh={load} />
                   </td>
@@ -156,9 +174,7 @@ export const EventosAdminListPage = () => {
           </p>
         )}
 
-        {loading && (
-          <p className="text-center text-sm text-slate-500 py-6">Cargando...</p>
-        )}
+        {loading && <p className="text-center text-sm text-slate-500 py-6">Cargando...</p>}
       </div>
 
       {meta && meta.totalPages > 1 && (
@@ -184,6 +200,22 @@ export const EventosAdminListPage = () => {
           </button>
         </div>
       )}
+
+      <EventoComentariosModal
+        open={modalOpen}
+        onOpenChange={(v) => {
+          setModalOpen(v);
+          if (!v) setSelectedEventoId(null);
+        }}
+        eventoId={selectedEventoId ?? 0}
+        onChanged={() => {
+          if (selectedEventoId != null) {
+            getEventosComentariosCountMap([selectedEventoId]).then((m) =>
+              setCounts((prev) => ({ ...prev, ...m }))
+            );
+          }
+        }}
+      />
     </div>
   );
 };

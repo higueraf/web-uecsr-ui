@@ -102,11 +102,9 @@ export const createEvento = async (data: EventoPayload) => {
   form.append("categoria", data.categoria);
   form.append("orden", String(data.orden));
   if (data.imagen) form.append("imagen", data.imagen);
-
   const res = await apiClient.post("/eventos", form, {
     headers: { "Content-Type": "multipart/form-data" },
   });
-
   return res.data.data ?? res.data;
 };
 
@@ -122,11 +120,9 @@ export const updateEvento = async (id: number, data: EventoPayload) => {
   form.append("categoria", data.categoria);
   form.append("orden", String(data.orden));
   if (data.imagen) form.append("imagen", data.imagen);
-
   const res = await apiClient.put(`/eventos/${id}`, form, {
     headers: { "Content-Type": "multipart/form-data" },
   });
-
   return res.data.data ?? res.data;
 };
 
@@ -138,11 +134,16 @@ export interface EventoComentario {
   id: number;
   contenido: string;
   aprobado: boolean;
-  creadoEn: string;
-  actualizadoEn: string;
-  usuario: {
+  creadoEn?: string;
+  updatedAt?: string;
+  updated_at?: string;
+  actualizadoEn?: string;
+  createdAt?: string;
+  created_at?: string;
+  usuario?: {
     id: number;
-    nombre: string;
+    nombres?: string;
+    apellidos?: string;
   };
 }
 
@@ -157,7 +158,6 @@ export const getEventoComentarios = async (
   const res = await apiClient.get(`/eventos-comentarios/${eventoId}`, {
     params: { soloAprobados },
   });
-
   const data = res.data?.data ?? res.data;
   return Array.isArray(data) ? data : [];
 };
@@ -183,4 +183,28 @@ export const toggleAprobarEventoComentario = async (
 ): Promise<EventoComentario> => {
   const res = await apiClient.put(`/eventos-comentarios/${eventoId}/${comentarioId}/aprobar`);
   return res.data?.data ?? res.data;
+};
+
+export const getEventoComentariosCount = async (eventoId: number): Promise<number> => {
+  const res = await apiClient.get(`/eventos-comentarios/${eventoId}`, {
+    params: { soloAprobados: false },
+  });
+  const data = res.data?.data ?? res.data;
+  return Array.isArray(data) ? data.length : 0;
+};
+
+export const getEventosComentariosCountMap = async (
+  eventoIds: number[]
+): Promise<Record<number, number>> => {
+  const entries = await Promise.all(
+    eventoIds.map(async (id) => {
+      try {
+        const n = await getEventoComentariosCount(id);
+        return [id, n] as const;
+      } catch {
+        return [id, 0] as const;
+      }
+    })
+  );
+  return Object.fromEntries(entries);
 };

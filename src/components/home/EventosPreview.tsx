@@ -9,6 +9,9 @@ interface EventosPreviewProps {
   onAddEvent?: () => void;
 }
 
+const resolveImage = (url?: string) =>
+  url ? import.meta.env.VITE_API_URL + url : "";
+
 export const EventosPreview = ({
   isAdmin = false,
   onEditEvent,
@@ -75,7 +78,7 @@ export const EventosPreview = ({
               onClick={() => navigate(`/eventos/${evento.id}`)}
             >
               <img
-                src={evento.imagenUrl || "https://placehold.co/800x600/6B7280/FFFFFF?text=Evento"}
+                src={resolveImage(evento.imagenUrl) || "https://placehold.co/800x600/6B7280/FFFFFF?text=Evento"}
                 alt={evento.titulo}
                 className="w-full md:w-1/2 h-64 md:h-80 object-cover"
               />

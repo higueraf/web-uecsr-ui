@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+// src/features/noticias/pages/NoticiasAdminListPage.tsx
+import { useEffect, useMemo, useState } from "react";
 import {
   getNoticiasAdmin,
+  getNoticiasComentariosCountMap,
   type Noticia,
   type EstadoNoticia,
 } from "@/features/noticias/api/noticiasApi";
 import { NoticiaRowActions } from "../components/NoticiaRowActions";
 import { Link } from "react-router-dom";
+import { NoticiaComentariosModal } from "../components/NoticiaComentariosModal";
 
 const estados: (EstadoNoticia | "TODOS")[] = ["TODOS", "BORRADOR", "PUBLICADO", "OCULTO"];
 
@@ -16,14 +19,19 @@ export const NoticiasAdminListPage = () => {
   const [search, setSearch] = useState("");
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoNoticia | "TODOS">("TODOS");
 
+  const [counts, setCounts] = useState<Record<number, number>>({});
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedNoticiaId, setSelectedNoticiaId] = useState<number | null>(null);
+
   const load = () => {
-    getNoticiasAdmin(page, search).then((res) => {
+    getNoticiasAdmin(page, search).then(async (res) => {
       let data = res.data;
-      if (estadoFiltro !== "TODOS") {
-        data = data.filter((n) => n.estado === estadoFiltro);
-      }
+      if (estadoFiltro !== "TODOS") data = data.filter((n) => n.estado === estadoFiltro);
       setItems(data);
       setMeta(res.meta);
+      const ids = data.map((d) => d.id);
+      const map = await getNoticiasComentariosCountMap(ids);
+      setCounts(map);
     });
   };
 
@@ -31,14 +39,22 @@ export const NoticiasAdminListPage = () => {
     load();
   }, [page, search, estadoFiltro]);
 
+  const openComentarios = (noticiaId: number) => {
+    setSelectedNoticiaId(noticiaId);
+    setModalOpen(true);
+  };
+
+  const columns = useMemo(() => {
+    const base = ["Título", "Estado", "Destacado", "Publicación", "Comentarios", "Acciones"];
+    return base;
+  }, []);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Noticias</h1>
-          <p className="text-sm text-slate-500">
-            Gestiona las noticias que se muestran en el sitio público.
-          </p>
+          <p className="text-sm text-slate-500">Gestiona las noticias que se muestran en el sitio público.</p>
         </div>
 
         <Link
@@ -47,7 +63,6 @@ export const NoticiasAdminListPage = () => {
         >
           Nueva noticia
         </Link>
-
       </div>
 
       <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
@@ -76,28 +91,26 @@ export const NoticiasAdminListPage = () => {
         <table className="w-full border-collapse text-sm">
           <thead className="bg-slate-50">
             <tr>
-              <th className="p-3 text-left">Título</th>
-              <th className="p-3 text-left hidden md:table-cell">Estado</th>
-              <th className="p-3 text-left hidden md:table-cell">Destacado</th>
-              <th className="p-3 text-left hidden lg:table-cell">Publicación</th>
-              <th className="p-3 text-right">Acciones</th>
+              <th className="p-3 text-left">{columns[0]}</th>
+              <th className="p-3 text-left hidden md:table-cell">{columns[1]}</th>
+              <th className="p-3 text-left hidden md:table-cell">{columns[2]}</th>
+              <th className="p-3 text-left hidden lg:table-cell">{columns[3]}</th>
+              <th className="p-3 text-left hidden md:table-cell">{columns[4]}</th>
+              <th className="p-3 text-right">{columns[5]}</th>
             </tr>
           </thead>
 
           <tbody>
             {items.map((n) => {
               const fecha = n.fechaPublicacion ?? n.createdAt;
+              const cantidad = counts[n.id] ?? 0;
 
               return (
                 <tr key={n.id} className="border-t">
                   <td className="p-3">
-                    <div className="font-semibold text-slate-900 line-clamp-1">
-                      {n.titulo}
-                    </div>
+                    <div className="font-semibold text-slate-900 line-clamp-1">{n.titulo}</div>
                     {n.resumen && (
-                      <div className="text-xs text-slate-500 line-clamp-2 md:hidden">
-                        {n.resumen}
-                      </div>
+                      <div className="text-xs text-slate-500 line-clamp-2 md:hidden">{n.resumen}</div>
                     )}
                   </td>
 
@@ -119,12 +132,21 @@ export const NoticiasAdminListPage = () => {
                     )}
                   </td>
 
-                  <td className="p-3 text-xs hidden md:table-cell">
-                    {n.destacado ? "Sí" : "No"}
-                  </td>
+                  <td className="p-3 text-xs hidden md:table-cell">{n.destacado ? "Sí" : "No"}</td>
 
                   <td className="p-3 text-xs hidden lg:table-cell">
                     {fecha ? new Date(fecha).toLocaleDateString() : "-"}
+                  </td>
+
+                  <td className="p-3 hidden md:table-cell">
+                    <button
+                      className="px-3 py-1 border rounded-lg text-xs hover:bg-slate-50"
+                      onClick={() => openComentarios(n.id)}
+                      disabled={cantidad === 0}
+                      title={cantidad === 0 ? "No hay comentarios" : "Ver comentarios"}
+                    >
+                      {cantidad}
+                    </button>
                   </td>
 
                   <td className="p-3">
@@ -137,9 +159,7 @@ export const NoticiasAdminListPage = () => {
         </table>
 
         {items.length === 0 && (
-          <p className="text-center text-sm text-slate-500 py-6">
-            No hay noticias con los filtros actuales.
-          </p>
+          <p className="text-center text-sm text-slate-500 py-6">No hay noticias con los filtros actuales.</p>
         )}
       </div>
 
@@ -166,6 +186,22 @@ export const NoticiasAdminListPage = () => {
           </button>
         </div>
       )}
+
+      <NoticiaComentariosModal
+        open={modalOpen}
+        onOpenChange={(v) => {
+          setModalOpen(v);
+          if (!v) setSelectedNoticiaId(null);
+        }}
+        noticiaId={selectedNoticiaId ?? 0}
+        onChanged={() => {
+          if (selectedNoticiaId != null) {
+            getNoticiasComentariosCountMap([selectedNoticiaId]).then((m) =>
+              setCounts((prev) => ({ ...prev, ...m }))
+            );
+          }
+        }}
+      />
     </div>
   );
 };

@@ -6,7 +6,7 @@ import {
   type Noticia,
 } from "@/features/noticias/api/noticiasApi";
 import { ArrowLeft } from "lucide-react";
-import { NoticiaComentarios } from "../components/NoticiaComentario";
+import { NoticiaComentarios } from "../components/NoticiaComentarios";
 
 const resolveImage = (url?: string) =>
   url ? import.meta.env.VITE_API_URL + url : undefined;

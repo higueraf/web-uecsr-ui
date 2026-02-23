@@ -38,34 +38,24 @@ export interface NoticiasListResponse {
   };
 }
 
-// Adaptador para backend → frontend
 const adaptListResponse = (raw: any, page: number = 1): NoticiasListResponse => {
   const backend = raw?.data ?? {};
-
   const items = Array.isArray(backend.items) ? backend.items : [];
   const metaRaw = backend.meta ?? {};
-
   const meta = {
     page: metaRaw.currentPage ?? page,
     limit: metaRaw.itemsPerPage ?? metaRaw.limit ?? 10,
     total: metaRaw.totalItems ?? metaRaw.total ?? 0,
     totalPages: metaRaw.totalPages ?? 1,
   };
-
-  return {
-    data: items,
-    meta,
-  };
+  return { data: items, meta };
 };
 
 export const getNoticiasAdmin = async (
   page = 1,
   search = ""
 ): Promise<NoticiasListResponse> => {
-  const res = await apiClient.get("/noticias/admin", {
-    params: { page, search },
-  });
-
+  const res = await apiClient.get("/noticias/admin", { params: { page, search } });
   return adaptListResponse(res.data, page);
 };
 
@@ -73,16 +63,13 @@ export const getNoticiasPublic = async (
   page = 1,
   search = ""
 ): Promise<NoticiasListResponse> => {
-  const res = await apiClient.get("/noticias/publico", {
-    params: { page, search },
-  });
-
+  const res = await apiClient.get("/noticias/publico", { params: { page, search } });
   return adaptListResponse(res.data, page);
 };
 
 export const getNoticiaById = async (id: number): Promise<Noticia> => {
   const res = await apiClient.get(`/noticias/${id}`);
-  return res.data.data ?? res.data; 
+  return res.data.data ?? res.data;
 };
 
 export const getNoticiaPublicById = async (id: number): Promise<Noticia> => {
@@ -100,11 +87,9 @@ export const createNoticia = async (data: NoticiaPayload) => {
   form.append("destacado", String(data.destacado));
   form.append("orden", String(data.orden));
   if (data.imagen) form.append("imagen", data.imagen);
-
   const res = await apiClient.post("/noticias", form, {
     headers: { "Content-Type": "multipart/form-data" },
   });
-
   return res.data.data;
 };
 
@@ -119,11 +104,9 @@ export const updateNoticia = async (id: number, data: NoticiaPayload) => {
   form.append("destacado", String(data.destacado));
   form.append("orden", String(data.orden));
   if (data.imagen) form.append("imagen", data.imagen);
-
   const res = await apiClient.put(`/noticias/${id}`, form, {
     headers: { "Content-Type": "multipart/form-data" },
   });
-
   return res.data.data;
 };
 
@@ -135,8 +118,6 @@ export const togglePublicarNoticia = async (id: number) => {
   return apiClient.patch(`/noticias/${id}/publicar`);
 };
 
-
-// En noticiasApi.ts (agregar al inicio)
 export interface NoticiaComentario {
   id: number;
   contenido: string;
@@ -144,9 +125,13 @@ export interface NoticiaComentario {
   emailAutor?: string;
   aprobado: boolean;
   creadoEn?: string;
+  createdAt?: string;
+  created_at?: string;
   usuario?: {
     id: number;
-    nombre: string;
+    nombres?: string;
+    apellidos?: string;
+    nombre?: string;
   };
 }
 
@@ -156,19 +141,20 @@ export interface NoticiaComentarioPayload {
   emailAutor?: string;
 }
 
-// Agregar estas funciones al final del archivo:
 export const getNoticiaComentarios = async (
   noticiaId: number,
   soloAprobados: boolean = true
 ): Promise<NoticiaComentario[]> => {
   const res = await apiClient.get(`/noticias-comentarios/${noticiaId}`, {
-    params: { soloAprobados }
+    params: { soloAprobados },
   });
   return res.data.data;
 };
 
 export const createNoticiaComentario = async (
-noticiaId: number, data: { contenido: string; }): Promise<NoticiaComentario> => {
+  noticiaId: number,
+  data: { contenido: string }
+): Promise<NoticiaComentario> => {
   const res = await apiClient.post(`/noticias-comentarios/${noticiaId}`, data);
   return res.data.data;
 };
@@ -178,4 +164,36 @@ export const deleteNoticiaComentario = async (
   comentarioId: number
 ): Promise<void> => {
   await apiClient.delete(`/noticias-comentarios/${noticiaId}/${comentarioId}`);
+};
+
+export const toggleAprobacionNoticiaComentario = async (
+  noticiaId: number,
+  comentarioId: number
+): Promise<NoticiaComentario> => {
+  const res = await apiClient.put(`/noticias-comentarios/${noticiaId}/${comentarioId}/aprobar`);
+  return res.data.data;
+};
+
+export const getNoticiaComentariosCount = async (noticiaId: number): Promise<number> => {
+  const res = await apiClient.get(`/noticias-comentarios/${noticiaId}`, {
+    params: { soloAprobados: false },
+  });
+  const data = res.data.data;
+  return Array.isArray(data) ? data.length : 0;
+};
+
+export const getNoticiasComentariosCountMap = async (
+  noticiaIds: number[]
+): Promise<Record<number, number>> => {
+  const entries = await Promise.all(
+    noticiaIds.map(async (id) => {
+      try {
+        const n = await getNoticiaComentariosCount(id);
+        return [id, n] as const;
+      } catch {
+        return [id, 0] as const;
+      }
+    })
+  );
+  return Object.fromEntries(entries);
 };

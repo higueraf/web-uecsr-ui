@@ -114,7 +114,7 @@ export const NoticiaComentarios = ({ noticiaId }: NoticiaComentariosProps) => {
               className="border-l-4 border-green-500 pl-4 py-3 bg-white rounded-r-lg shadow-sm"
             >
               <div className="flex justify-between mb-1">
-                <span className="font-semibold">{c.usuario?.nombre}</span>
+                <span className="font-semibold">{c.usuario?.nombres} {c.usuario?.apellidos}</span>
                 <span className="text-sm text-gray-500">
                   {new Date(c.creadoEn ?? '').toLocaleDateString()}
 
